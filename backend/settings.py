@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "friend",
     "post",
     "message",
+    "notification",
 ]
 
 MIDDLEWARE = [
