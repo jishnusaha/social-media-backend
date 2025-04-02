@@ -47,7 +47,7 @@ class CustomUser(AbstractUser):
     REQUIRED_FIELDS = ["first_name", "last_name", "email"]
 
     def __str__(self):
-        return f"{self.get_full_name()} ({self.user_type})"
+        return f"{self.username} ({self.user_type})"
 
 
 class AdminUser(CustomUser):
