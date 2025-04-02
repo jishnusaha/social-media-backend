@@ -1,4 +1,3 @@
-# posts/views.py
 from rest_framework import viewsets, status
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter
@@ -16,6 +15,7 @@ from .serializers import (
 from friend.models import Friendship
 from django.utils import timezone
 from datetime import timedelta
+from django.db.transaction import atomic
 
 
 class PostViewSet(viewsets.ModelViewSet):
@@ -53,6 +53,10 @@ class PostViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user.enduser)
+
+    @atomic
+    def perform_destroy(self, instance):
+        return super().perform_destroy(instance)
 
     @action(detail=True, methods=["post"])
     def react(self, request, pk=None):
@@ -111,8 +115,7 @@ class PostViewSet(viewsets.ModelViewSet):
         post = self.get_object()
         reactions = post.reactions.all()
 
-        # Optional filtering by reaction type
-        reaction_type = request.query_params.get("type")
+        reaction_type = request.query_params.get("reaction_type")
         if reaction_type:
             reactions = reactions.filter(reaction_type=reaction_type)
 
@@ -146,10 +149,9 @@ class CommentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user.enduser)
 
-    def destroy(self, request, *args, **kwargs):
-        comment = self.get_object()
-        comment.delete()  # This will permanently delete the comment
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    @atomic
+    def perform_destroy(self, instance):
+        return super().perform_destroy(instance)
 
     @action(detail=True, methods=["post"])
     def react(self, request, pk=None):
@@ -185,6 +187,7 @@ class CommentViewSet(viewsets.ModelViewSet):
 
         return Response({"detail": message}, status=status.HTTP_200_OK)
 
+    @atomic
     @action(detail=True, methods=["delete"])
     def unreact(self, request, pk=None):
         comment = self.get_object()
