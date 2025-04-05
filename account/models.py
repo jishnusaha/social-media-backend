@@ -1,4 +1,6 @@
 import uuid
+import random
+import string
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.utils.translation import gettext_lazy as _
@@ -6,21 +8,46 @@ from django.utils.translation import gettext_lazy as _
 from core.validators import validate_not_empty
 
 
+def generate_username():
+    """Generate a random 8-character alphanumeric username"""
+    characters = string.ascii_letters + string.digits
+    return "".join(random.choice(characters) for _ in range(8))
+
+
 class CustomUserManager(BaseUserManager):
-    def create_user(self, username, email, password=None, **extra_fields):
+    def create_user(self, email, password=None, **extra_fields):
         if not email:
             raise ValueError("Email is required")
+
         email = self.normalize_email(email)
-        user = self.model(username=username, email=email, **extra_fields)
+
+        # Generate username if not provided
+        if not extra_fields.get("username"):
+            username = generate_username()
+            # Ensure username is unique
+            while self.model.objects.filter(username=username).exists():
+                username = generate_username()
+            extra_fields["username"] = username
+
+        user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, username, email, password=None, **extra_fields):
+    def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("user_type", CustomUser.UserType.ADMIN)
-        return self.create_user(username, email, password, **extra_fields)
+
+        # For superuser, we'll still need to provide a username parameter
+        # but it will be overridden by generate_username if not set
+        if "username" not in extra_fields:
+            username = generate_username()
+            while self.model.objects.filter(username=username).exists():
+                username = generate_username()
+            extra_fields["username"] = username
+
+        return self.create_user(email, password, **extra_fields)
 
 
 class CustomUser(AbstractUser):
@@ -44,7 +71,9 @@ class CustomUser(AbstractUser):
 
     objects = CustomUserManager()
 
-    REQUIRED_FIELDS = ["first_name", "last_name", "email"]
+    # Change the USERNAME_FIELD to email
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["first_name", "last_name"]
 
     def __str__(self):
         return f"{self.username} ({self.user_type})"

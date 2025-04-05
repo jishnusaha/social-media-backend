@@ -4,6 +4,9 @@ from .models import AdminUser, EndUser
 
 class EndUserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
+    username = serializers.CharField(read_only=True)  # will be auto generated
+    first_name = serializers.CharField(required=True)
+    last_name = serializers.CharField(required=True)
 
     class Meta:
         model = EndUser
@@ -11,7 +14,6 @@ class EndUserRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = EndUser.objects.create_user(
-            username=validated_data["username"],
             email=validated_data["email"],
             password=validated_data["password"],
             first_name=validated_data.get("first_name", ""),
