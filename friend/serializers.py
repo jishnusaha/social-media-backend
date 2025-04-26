@@ -24,10 +24,10 @@ class FriendRequestSerializer(serializers.ModelSerializer):
             "sender_details",
             "receiver_details",
         ]
-        read_only_fields = ["status"]
+        read_only_fields = ["status", "sender"]
 
     def validate(self, data):
-        sender = data.get("sender")
+        sender = self.context["request"].user.enduser
         receiver = data.get("receiver")
 
         if sender == receiver:

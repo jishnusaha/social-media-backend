@@ -19,20 +19,21 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        user = self.request.user
+        user = self.request.user.enduser
         return FriendRequest.objects.filter(Q(sender=user) | Q(receiver=user)).order_by(
             "-created_at"
         )
 
     def perform_create(self, serializer):
-        serializer.save(sender=self.request.user)
+        serializer.save(sender=self.request.user.enduser)
 
     @action(detail=True, methods=["post"])
     def accept(self, request, pk=None):
+        # TODO: if accepted, delte this history, add friends since date time
         friend_request = self.get_object()
 
         # Check if the current user is the receiver
-        if friend_request.receiver != request.user:
+        if friend_request.receiver != request.user.enduser:
             return Response(
                 {"detail": "You can only accept requests sent to you."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -64,7 +65,7 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
         friend_request = self.get_object()
 
         # Check if the current user is the receiver
-        if friend_request.receiver != request.user:
+        if friend_request.receiver != request.user.enduser:
             return Response(
                 {"detail": "You can only reject requests sent to you."},
                 status=status.HTTP_403_FORBIDDEN,
@@ -88,7 +89,7 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def received(self, request):
-        user = request.user
+        user = request.user.enduser
         queryset = FriendRequest.objects.filter(
             receiver=user, status=FriendRequest.Status.PENDING
         ).order_by("-created_at")
@@ -98,7 +99,7 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"])
     def sent(self, request):
-        user = request.user
+        user = request.user.enduser
         queryset = FriendRequest.objects.filter(sender=user).order_by("-created_at")
 
         serializer = self.get_serializer(queryset, many=True)
@@ -110,7 +111,7 @@ class FriendshipViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        user = self.request.user
+        user = self.request.user.enduser
         return Friendship.objects.filter(Q(user1=user) | Q(user2=user))
 
     @action(detail=False, methods=["delete"])
@@ -122,7 +123,7 @@ class FriendshipViewSet(viewsets.ReadOnlyModelViewSet):
             )
 
         friend = get_object_or_404(EndUser, id=friend_id)
-        user = request.user
+        user = request.user.enduser
 
         # Find and delete the friendship
         friendship = Friendship.objects.filter(
@@ -142,7 +143,7 @@ class FriendshipViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["get"])
     def suggestions(self, request):
-        user = request.user
+        user = request.user.enduser
 
         # Get current friends
         friends = Friendship.get_friends(user)
