@@ -19,12 +19,11 @@ class FriendRequestSerializer(serializers.ModelSerializer):
             "id",
             "sender",
             "receiver",
-            "status",
             "created_at",
             "sender_details",
             "receiver_details",
         ]
-        read_only_fields = ["status", "sender"]
+        read_only_fields = ["sender"]
 
     def validate(self, data):
         sender = self.context["request"].user.enduser

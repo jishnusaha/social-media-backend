@@ -6,10 +6,6 @@ from django.db.models import Q
 
 
 class FriendRequest(BaseModel):
-    class Status(models.TextChoices):
-        PENDING = "PENDING", "Pending"
-        ACCEPTED = "ACCEPTED", "Accepted"
-        REJECTED = "REJECTED", "Rejected"
 
     sender = models.ForeignKey(
         EndUser, related_name="sent_friend_requests", on_delete=models.CASCADE
@@ -17,15 +13,12 @@ class FriendRequest(BaseModel):
     receiver = models.ForeignKey(
         EndUser, related_name="received_friend_requests", on_delete=models.CASCADE
     )
-    status = models.CharField(
-        max_length=10, choices=Status.choices, default=Status.PENDING
-    )
 
     class Meta:
         unique_together = ("sender", "receiver")
 
     def __str__(self):
-        return f"{self.sender.username} → {self.receiver.username} ({self.status})"
+        return f"{self.sender.email} → {self.receiver.email}"
 
 
 class Friendship(BaseModel):

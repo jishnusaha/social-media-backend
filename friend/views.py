@@ -29,7 +29,6 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"])
     def accept(self, request, pk=None):
-        # TODO: if accepted, delte this history, add friends since date time
         friend_request = self.get_object()
 
         # Check if the current user is the receiver
@@ -39,60 +38,23 @@ class FriendRequestViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        # Check if the request is pending
-        if friend_request.status != FriendRequest.Status.PENDING:
-            return Response(
-                {"detail": "This request has already been processed."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Update request status and create friendship
-        friend_request.status = FriendRequest.Status.ACCEPTED
-        friend_request.save()
-
-        # Create the friendship (ensure we don't create duplicates)
         Friendship.objects.get_or_create(
             user1=friend_request.sender, user2=friend_request.receiver
         )
 
-        return Response(
-            {"detail": "Friend request accepted successfully."},
-            status=status.HTTP_200_OK,
-        )
-
-    @action(detail=True, methods=["post"])
-    def reject(self, request, pk=None):
-        friend_request = self.get_object()
-
-        # Check if the current user is the receiver
-        if friend_request.receiver != request.user.enduser:
-            return Response(
-                {"detail": "You can only reject requests sent to you."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        # Check if the request is pending
-        if friend_request.status != FriendRequest.Status.PENDING:
-            return Response(
-                {"detail": "This request has already been processed."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Update request status
-        friend_request.status = FriendRequest.Status.REJECTED
-        friend_request.save()
+        friend_request.delete()
 
         return Response(
-            {"detail": "Friend request rejected successfully."},
+            {
+                "detail": "Friend request accepted successfully.",
+            },
             status=status.HTTP_200_OK,
         )
 
     @action(detail=False, methods=["get"])
     def received(self, request):
         user = request.user.enduser
-        queryset = FriendRequest.objects.filter(
-            receiver=user, status=FriendRequest.Status.PENDING
-        ).order_by("-created_at")
+        queryset = FriendRequest.objects.filter(receiver=user).order_by("-created_at")
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
