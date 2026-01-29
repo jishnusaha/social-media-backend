@@ -65,11 +65,14 @@ class Reaction(BaseModel):
         unique_together = [("user", "post"), ("user", "comment")]
         constraints = [
             models.CheckConstraint(
-                check=models.Q(post__isnull=False) | models.Q(comment__isnull=False),
+                condition=models.Q(post__isnull=False)
+                | models.Q(comment__isnull=False),
                 name="reaction_has_post_or_comment",
             ),
             models.CheckConstraint(
-                check=~(models.Q(post__isnull=False) & models.Q(comment__isnull=False)),
+                condition=~(
+                    models.Q(post__isnull=False) & models.Q(comment__isnull=False)
+                ),
                 name="reaction_not_both_post_and_comment",
             ),
         ]
