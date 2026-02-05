@@ -23,7 +23,7 @@ services:
   nginx:
     image: nginx:latest
     ports:
-      - "9001:80"  # map host port to nginx
+      - "80:80"  # map host port to nginx
     depends_on:
       - web
     volumes:
