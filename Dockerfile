@@ -14,15 +14,18 @@ RUN apt-get update && apt-get install -y \
 
 # Install Python deps
 COPY pyproject.toml poetry.lock* /app/
-RUN pip install poetry \
+RUN pip install --no-cache-dir poetry \
     && poetry config virtualenvs.create false \
     && poetry install --no-root --without dev
 
 # Copy project files
 COPY . /app/
 
-# Collect static files
-RUN python manage.py collectstatic --noinput
+# Entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
 
 # Expose port used by Gunicorn
 EXPOSE 8000
