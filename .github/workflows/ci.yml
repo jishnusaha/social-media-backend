@@ -34,6 +34,16 @@ jobs:
                 docker build -t $IMAGE_URI:$TAG -t $IMAGE_URI:latest .
                 docker push $IMAGE_URI:$TAG
                 docker push $IMAGE_URI:latest
+    deploy:
+        needs: build
+        runs-on: ubuntu-latest
+        steps:
+            - name: Configure AWS credentials (OIDC)
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                role-to-assume: arn:aws:iam::307946642170:role/GitHubOIDCRole
+                aws-region: eu-north-1
+            
 
             - name: Deploy via SSM
               run: |
