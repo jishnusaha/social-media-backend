@@ -1,41 +1,44 @@
-name: CI - Build and Push to ECR
+name: Deploy to Production
+
 on:
-    push:
-        branches: [ "master" ]
+  push:
+    branches: ["master"]
+
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
     build:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout code
               uses: actions/checkout@v4
-            - name: Configure AWS credentials
+
+            - name: Configure AWS credentials (OIDC)
               uses: aws-actions/configure-aws-credentials@v4
               with:
-                aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                aws-region: ${{ secrets.AWS_REGION }}
-
+                role-to-assume: arn:aws:iam::307946642170:role/GitHubOIDCRole
+                aws-region: eu-north-1
+            
             - name: Login to Amazon ECR
-              uses: aws-actions/amazon-ecr-login@v2
-        
+              run: |
+                aws ecr get-login-password --region eu-north-1 \
+                | docker login --username AWS --password-stdin 307946642170.dkr.ecr.eu-north-1.amazonaws.com
+                
             - name: Build and push Docker image
               run: |
                 IMAGE_URI=307946642170.dkr.ecr.eu-north-1.amazonaws.com/social-media-backend
                 TAG=${GITHUB_SHA::7}
 
                 docker build -t $IMAGE_URI:$TAG -t $IMAGE_URI:latest .
+                docker push $IMAGE_URI:$TAG
                 docker push $IMAGE_URI:latest
 
-    deploy:
-        needs: build
-        runs-on: ubuntu-latest
-        steps:
-            - name: SSH into EC2 and deploy
-              uses: appleboy/ssh-action@v1.0.3
-              with:
-                host: ${{ secrets.EC2_HOST }}
-                username: ${{ secrets.EC2_USER }}
-                key: ${{ secrets.EC2_SSH_KEY }}
-                script: |
-                    cd /home/ubuntu/app
-                    ./deploy.sh
+            - name: Deploy via SSM
+              run: |
+                aws ssm send-command \
+                  --document-name "AWS-RunShellScript" \
+                  --targets "Key=instanceIds,Values=i-08a44c9a729c1e405" \
+                  --parameters 'commands=["/home/ubuntu/app/deploy.sh"]' \
+                  --comment "Production deployment"
