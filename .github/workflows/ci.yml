@@ -18,17 +18,17 @@ jobs:
             - name: Configure AWS credentials (OIDC)
               uses: aws-actions/configure-aws-credentials@v4
               with:
-                role-to-assume: arn:aws:iam::307946642170:role/GitHubOIDCRole
-                aws-region: eu-north-1
+                role-to-assume: arn:aws:iam::${{secrets.ACCOUNT_ID}}:role/${{secrets.OIDC_ROLE_NAME}}
+                aws-region: ${{secrets.AWS_REGION}}
             
             - name: Login to Amazon ECR
               run: |
-                aws ecr get-login-password --region eu-north-1 \
-                | docker login --username AWS --password-stdin 307946642170.dkr.ecr.eu-north-1.amazonaws.com
+                aws ecr get-login-password --region ${{secrets.AWS_REGION}} \
+                | docker login --username AWS --password-stdin ${{secrets.ACCOUNT_ID}}.dkr.ecr.${{secrets.AWS_REGION}}.amazonaws.com
                 
             - name: Build and push Docker image
               run: |
-                IMAGE_URI=307946642170.dkr.ecr.eu-north-1.amazonaws.com/social-media-backend
+                IMAGE_URI=${{secrets.ACCOUNT_ID}}.dkr.ecr.${{secrets.AWS_REGION}}.amazonaws.com/social-media-backend
                 TAG=${GITHUB_SHA::7}
 
                 docker build -t $IMAGE_URI:$TAG -t $IMAGE_URI:latest .
@@ -41,14 +41,14 @@ jobs:
             - name: Configure AWS credentials (OIDC)
               uses: aws-actions/configure-aws-credentials@v4
               with:
-                role-to-assume: arn:aws:iam::307946642170:role/GitHubOIDCRole
-                aws-region: eu-north-1
+                role-to-assume: arn:aws:iam::${{secrets.ACCOUNT_ID}}:role/${{secrets.OIDC_ROLE_NAME}}
+                aws-region: ${{secrets.AWS_REGION}}
             
 
             - name: Deploy via SSM
               run: |
                 aws ssm send-command \
                   --document-name "AWS-RunShellScript" \
-                  --targets "Key=instanceIds,Values=i-08a44c9a729c1e405" \
+                  --targets "Key=instanceIds,Values=${{secrets.INSTANCE_ID}}" \
                   --parameters 'commands=["/home/ubuntu/app/deploy.sh"]' \
                   --comment "Production deployment"
