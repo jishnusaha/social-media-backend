@@ -1,6 +1,6 @@
 services:
   web:
-    image: 307946642170.dkr.ecr.eu-north-1.amazonaws.com/social-media-backend:latest
+    image: 307946642170.dkr.ecr.eu-north-1.amazonaws.com/social-media-backend:${IMAGE_TAG}
     command: gunicorn backend.wsgi:application --bind 0.0.0.0:8000
     environment:
       DEBUG: "False"
