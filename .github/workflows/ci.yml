@@ -46,13 +46,13 @@ jobs:
 
             - name: Deploy via SSM
               run: |
-                aws ssm send-command \
+                COMMAND_ID=$(aws ssm send-command \
                   --document-name "AWS-RunShellScript" \
                   --targets "Key=instanceIds,Values=${{secrets.INSTANCE_ID}}" \
-                  --parameters "commands=[
-                    'cd /home/ubuntu/app',
-                    'sed -i \"/^IMAGE_TAG=/d\" .env',
-                    'echo IMAGE_TAG=${GITHUB_SHA::7} >> .env',
-                    '/home/ubuntu/app/deploy.sh'
-                  ]" \
-                  --comment "Production deployment"
+                  --parameters 'commands=["/home/ubuntu/app/deploy.sh"]' \
+                  --query "Command.CommandId" \
+                  --output text)
+
+                aws ssm wait command-executed \
+                  --command-id $COMMAND_ID \
+                  --instance-id ${{secrets.INSTANCE_ID}}
